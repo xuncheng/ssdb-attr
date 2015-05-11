@@ -45,11 +45,15 @@ module SSDB
             t = Time.now
 
             if options[:touch].kind_of?(Array)
+              data = {}
+
               options[:touch].each do |field|
-                self.update(field.to_sym, t) if ActiveRecord::Base.connection.column_exists?(self.class.table_name, field.to_sym, :datetime)
+                data[field.to_sym] = t if ActiveRecord::Base.connection.column_exists?(self.class.table_name, field.to_sym, :datetime)
               end
+
+              self.update(data) if !data.empty?
             else
-              self.update(:updated_at, t) if ActiveRecord::Base.connection.column_exists?(self.class.table_name, :updated_at, :datetime)
+              self.update(updated_at: t) if ActiveRecord::Base.connection.column_exists?(self.class.table_name, :updated_at, :datetime)
             end
           end
         end
