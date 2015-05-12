@@ -7,6 +7,21 @@ module SSDB
     end
 
     module ClassMethods
+      def ssdb_attr_names
+        @ssdb_attr_names = [] if @ssdb_attr_names.nil?
+        @ssdb_attr_names
+      end
+
+      def update_ssdb_attrs(data={})
+        attr_names = data.keys && self.ssdb_attr_names
+
+        SSDBAttr.pool.with do |conn|
+          attr_names.each do |name|
+            conn.set("#{self.to_ssdb_attr_key(name)}", data[name])
+          end
+        end
+      end
+
       # ssdb_attr :content,        :string,   default: 0, touch: true
       # ssdb_attr :writer_version, :integer,  default: 0, touch: [:field1, :field2, :field3]
       #
@@ -23,6 +38,9 @@ module SSDB
           raise "Type not supported, only `:string` and `:integer` are supported now."
         end
 
+        self.ssdb_attr_names ||= []
+        self.ssdb_attr_names << name
+
         define_method(name) do
           conversion = type == :string ? :to_s : :to_i
 
@@ -36,28 +54,30 @@ module SSDB
         define_method("#{name}=") do |v|
           SSDBAttr.pool.with do |conn|
             conn.set("#{self.to_ssdb_attr_key(name)}", v)
-            self.send("touch_ssdb_attr_#{name}".to_sym) if self.respond_to?("touch_ssdb_attr_#{name}".to_sym)
           end
+
+          self.send("touch_ssdb_attr_#{name}".to_sym) if self.respond_to?("touch_ssdb_attr_#{name}".to_sym)
         end
 
         if options[:touch].present?
           define_method("touch_ssdb_attr_#{name}") do
-            t = Time.now
-
             if options[:touch].kind_of?(Array)
-              data = {}
-
-              options[:touch].each do |field|
-                data[field.to_sym] = t if ActiveRecord::Base.connection.column_exists?(self.class.table_name, field.to_sym, :datetime)
-              end
-
-              self.update(data) if !data.empty?
+              touch(*options[:touch])
             else
-              self.update(updated_at: t) if ActiveRecord::Base.connection.column_exists?(self.class.table_name, :updated_at, :datetime)
+              touch(:updated_at)
             end
           end
         end
       end
+
+      def after_update_ssdb_attributes(*args)
+        define_method("perform_ssdb_attr_after_callbacks") do
+        end
+      end
+
+      def before_update_ssdb_attributes(*args)
+      end
+
     end
   end
 end
