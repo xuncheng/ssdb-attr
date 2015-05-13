@@ -48,7 +48,8 @@ describe SSDB::Attr do
     if 'should correctly set values'
       post = Post.create
 
-      post.update_ssdb_attrs(title: :bar)
+      post.update_ssdb_attrs(title: 'bar2')
+      post.update_ssdb_attrs(title: 'bar2')
 
       # title =  'foo'
       # content = 'bar'
