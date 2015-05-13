@@ -2,6 +2,11 @@ module SSDB
   module Attr
     extend ActiveSupport::Concern
 
+    included do
+    #   puts 'called'
+      define_model_callbacks :update_ssdb_attrs, only: [:before, :after]
+    end
+
     def to_ssdb_attr_key(name)
       "#{self.class.to_s.underscore.pluralize}:#{self.id}:#{name}"
     end
@@ -21,15 +26,16 @@ module SSDB
         end
       end
 
-      trigger_ssdb_attr_before_callbacks if self.respond_to? :trigger_ssdb_attr_before_callbacks
-
-      SSDBAttr.pool.with do |conn|
-        attr_names.each do |name|
-          conn.set("#{self.to_ssdb_attr_key(name)}", data[name])
+      # trigger_ssdb_attr_before_callbacks if self.respond_to? :trigger_ssdb_attr_before_callbacks
+      run_callbacks :update_ssdb_attrs do
+        SSDBAttr.pool.with do |conn|
+          attr_names.each do |name|
+            conn.set("#{self.to_ssdb_attr_key(name)}", data[name])
+          end
         end
       end
 
-      trigger_ssdb_attr_after_callbacks if self.respond_to? :trigger_ssdb_attr_after_callbacks
+      # trigger_ssdb_attr_after_callbacks if self.respond_to? :trigger_ssdb_attr_after_callbacks
 
       # Clear dirty fields
       attr_names.each do |name|
@@ -95,21 +101,21 @@ module SSDB
         end
       end
 
-      def after_update_ssdb_attrs(*args)
-        define_method("trigger_ssdb_attr_after_callbacks") do
-          args.each do |arg|
-            self.send(arg.to_sym)
-          end
-        end
-      end
-
-      def before_update_ssdb_attrs(*args)
-        define_method("trigger_ssdb_attr_before_callbacks") do
-          args.each do |arg|
-            self.send(arg.to_sym)
-          end
-        end
-      end
+      # def after_update_ssdb_attrs(*args)
+      #   define_method("trigger_ssdb_attr_after_callbacks") do
+      #     args.each do |arg|
+      #       self.send(arg.to_sym)
+      #     end
+      #   end
+      # end
+      #
+      # def before_update_ssdb_attrs(*args)
+      #   define_method("trigger_ssdb_attr_before_callbacks") do
+      #     args.each do |arg|
+      #       self.send(arg.to_sym)
+      #     end
+      #   end
+      # end
     end
   end
 end
