@@ -6,7 +6,7 @@ require 'minitest/autorun'
 require 'minitest/mock'
 require 'minitest/pride'
 
-SSDBAttr.setup url: 'http://localhost:8888'
+SSDBAttr.setup url: 'redis://localhost:6379/15'
 
 # Setup activerecord
 ActiveRecord::Base.raise_in_transactional_callbacks = true if ActiveRecord::VERSION::STRING >= '4.2'

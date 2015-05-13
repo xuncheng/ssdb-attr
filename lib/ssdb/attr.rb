@@ -6,20 +6,41 @@ module SSDB
       "#{self.class.to_s.underscore.pluralize}:#{self.id}:#{name}"
     end
 
+    def update_ssdb_attrs(data={})
+
+      # Determine what attrs are requested to be updated
+      attr_names = data.keys & self.class.ssdb_attr_names
+      if attr_names.empty?
+        return
+      end
+
+      # Determine dirty fields
+      attr_names.each do |name|
+        if self.send(name.to_sym) != data[name].to_s
+          attribute_will_change! name.to_sym
+        end
+      end
+
+      trigger_ssdb_attr_before_callbacks if self.respond_to? :trigger_ssdb_attr_before_callbacks
+
+      SSDBAttr.pool.with do |conn|
+        attr_names.each do |name|
+          conn.set("#{self.to_ssdb_attr_key(name)}", data[name])
+        end
+      end
+
+      trigger_ssdb_attr_after_callbacks if self.respond_to? :trigger_ssdb_attr_after_callbacks
+
+      # Clear dirty fields
+      attr_names.each do |name|
+        clear_attribute_changes name.to_sym
+      end
+    end
+
     module ClassMethods
       def ssdb_attr_names
         @ssdb_attr_names = [] if @ssdb_attr_names.nil?
         @ssdb_attr_names
-      end
-
-      def update_ssdb_attrs(data={})
-        attr_names = data.keys && self.ssdb_attr_names
-
-        SSDBAttr.pool.with do |conn|
-          attr_names.each do |name|
-            conn.set("#{self.to_ssdb_attr_key(name)}", data[name])
-          end
-        end
       end
 
       # ssdb_attr :content,        :string,   default: 0, touch: true
@@ -68,16 +89,27 @@ module SSDB
             end
           end
         end
-      end
 
-      def after_update_ssdb_attributes(*args)
-        define_method("perform_ssdb_attr_after_callbacks") do
+        define_method("#{name}_changed?") do
+          attribute_changed?(name.to_sym)
         end
       end
 
-      def before_update_ssdb_attributes(*args)
+      def after_update_ssdb_attrs(*args)
+        define_method("trigger_ssdb_attr_after_callbacks") do
+          args.each do |arg|
+            self.send(arg.to_sym)
+          end
+        end
       end
 
+      def before_update_ssdb_attrs(*args)
+        define_method("trigger_ssdb_attr_before_callbacks") do
+          args.each do |arg|
+            self.send(arg.to_sym)
+          end
+        end
+      end
     end
   end
 end
