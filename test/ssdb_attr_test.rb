@@ -34,7 +34,7 @@ class Post < ActiveRecord::Base
   ssdb_attr :custom_touch_multiple_columns, :string, touch: [:saved_at, :changed_at]
   ssdb_attr :title, :string
   ssdb_attr :content, :string
-  ssdb_attr :version, :integer, default: 0
+  ssdb_attr :version, :integer, default: 1
 
   before_update_ssdb_attrs :before1, :before2
   after_update_ssdb_attrs :after1, :after2
@@ -119,5 +119,16 @@ class SsdbAttrTest < test_framework
     @post.destroy
     assert_equal false, SSDBAttr.pool.with { |conn| conn.exists(ssdb_title_key) }
     assert_equal false, SSDBAttr.pool.with { |conn| conn.exists(ssdb_content_key) }
+  end
+
+  def test_object_create_callbacks
+    title_key = @post.to_ssdb_attr_key(:title)
+    default_title_key = @post.to_ssdb_attr_key(:default_title)
+    version_key = @post.to_ssdb_attr_key(:version)
+
+    assert_equal 9, SSDBAttr.pool.with { |conn| conn.keys.count }
+    assert_equal true, SSDBAttr.pool.with { |conn| conn.exists(title_key) }
+    assert_equal "Untitled", SSDBAttr.pool.with { |conn| conn.get(default_title_key) }
+    assert_equal "1", SSDBAttr.pool.with { |conn| conn.get(version_key) }
   end
 end

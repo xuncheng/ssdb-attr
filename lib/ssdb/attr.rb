@@ -4,6 +4,7 @@ module SSDB
 
     included do
       define_model_callbacks :update_ssdb_attrs, only: [:before, :after]
+      after_create :init_ssdb_attrs
       after_destroy :clear_ssdb_attrs
     end
 
@@ -24,6 +25,12 @@ module SSDB
 
       # Clear dirty fields
       clear_attribute_changes(attr_names)
+    end
+
+    def init_ssdb_attrs
+      self.class.ssdb_attr_names.each do |attribute|
+        SSDBAttr.pool.with { |conn| conn.set(to_ssdb_attr_key(attribute), self.send(attribute)) }
+      end
     end
 
     def clear_ssdb_attrs
@@ -72,7 +79,7 @@ module SSDB
         define_method(name) do
           conversion = type == :string ? :to_s : :to_i
           value = SSDBAttr.pool.with { |conn| conn.get("#{to_ssdb_attr_key(name)}") }
-          value.try(conversion) || options[:default]
+          (value || options[:default]).send(conversion)
         end
 
         define_method("#{name}=") do |val|
