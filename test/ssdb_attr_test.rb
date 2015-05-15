@@ -105,6 +105,10 @@ class SsdbAttrTest < test_framework
     assert_equal 1, @post.version
   end
 
+  def test_update_ssdb_attrs_on_object_return_true
+    assert_equal true, @post.update(title: "note one", content: "testing!!!", version: 1)
+  end
+
   def test_update_ssdb_attrs_callbacks
     @post.update_ssdb_attrs(title: "something")
     assert_equal [:before1, :before2, :after1, :after2], @post.callback_out

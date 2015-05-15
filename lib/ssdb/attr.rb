@@ -25,6 +25,8 @@ module SSDB
 
       # Clear dirty fields
       clear_attribute_changes(attr_names)
+
+      true # always return true
     end
 
     def init_ssdb_attrs
