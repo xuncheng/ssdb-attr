@@ -10,6 +10,7 @@ module SSDB
 
     def update_ssdb_attrs(attributes)
       # Determine what attrs are requested to be updated
+      attributes = attributes.symbolize_keys
       attr_names = attributes.keys & self.class.ssdb_attr_names
 
       # Determine dirty fields
@@ -19,7 +20,7 @@ module SSDB
 
       run_callbacks :update_ssdb_attrs do
         SSDBAttr.pool.with do |conn|
-          attr_names.each { |name| conn.set("#{to_ssdb_attr_key(name)}", attributes[name]) }
+          attr_names.each { |name| send("#{name}=", attributes[name]) }
         end
       end
 

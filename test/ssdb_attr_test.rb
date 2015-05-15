@@ -98,15 +98,22 @@ class SsdbAttrTest < test_framework
     assert_equal "posts:#{@post.id}:name", Post.to_ssdb_attr_key("name", @post.id)
   end
 
-  def test_update_ssdb_attrs
-    @post.update(title: "note one", content: "testing!!!", version: 1)
+  def test_update_ssdb_attrs_with_symbolize_keys
+    @post.update_ssdb_attrs(title: "note one", content: "testing!!!", version: 1)
+    assert_equal "note one", @post.title
+    assert_equal "testing!!!", @post.content
+    assert_equal 1, @post.version
+  end
+
+  def test_update_ssdb_attrs_with_string_keys
+    @post.update_ssdb_attrs("title" => "note one", "content" => "testing!!!", "version" => 1)
     assert_equal "note one", @post.title
     assert_equal "testing!!!", @post.content
     assert_equal 1, @post.version
   end
 
   def test_update_ssdb_attrs_on_object_return_true
-    assert_equal true, @post.update(title: "note one", content: "testing!!!", version: 1)
+    assert_equal true, @post.update_ssdb_attrs(title: "note one", content: "testing!!!", version: 1)
   end
 
   def test_update_ssdb_attrs_callbacks
