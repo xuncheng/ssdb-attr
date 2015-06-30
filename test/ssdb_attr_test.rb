@@ -153,7 +153,7 @@ class SsdbAttrTest < test_framework
     default_title_key = @post.to_ssdb_attr_key(:default_title)
     version_key = @post.to_ssdb_attr_key(:version)
 
-    assert_equal 9, SSDBAttr.pool.with { |conn| conn.keys.count }
+    assert_equal 10, SSDBAttr.pool.with { |conn| conn.keys.count }
     assert_equal true, SSDBAttr.pool.with { |conn| conn.exists(title_key) }
     assert_equal "Untitled", SSDBAttr.pool.with { |conn| conn.get(default_title_key) }
     assert_equal "1", SSDBAttr.pool.with { |conn| conn.get(version_key) }
