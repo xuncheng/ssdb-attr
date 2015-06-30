@@ -19,6 +19,10 @@ def setup!
   { 'posts' => 'updated_at DATETIME, saved_at DATETIME, changed_at DATETIME' }.each do |table_name, columns_as_sql_string|
     ActiveRecord::Base.connection.execute "CREATE TABLE #{table_name} (id INTEGER NOT NULL PRIMARY KEY, #{columns_as_sql_string})"
   end
+
+  { 'chat_messages' => 'uuid VARCHAR' }.each do |table_name, columns_as_sql_string|
+    ActiveRecord::Base.connection.execute "CREATE TABLE #{table_name} (id INTEGER NOT NULL PRIMARY KEY, #{columns_as_sql_string})"
+  end
 end
 
 setup!
@@ -50,6 +54,13 @@ class Post < ActiveRecord::Base
   end
 end
 
+class ChatMessage < ActiveRecord::Base
+  include SSDB::Attr
+
+  ssdb_attr :content, :string
+  ssdb_attr_id :uuid
+end
+
 class SsdbAttrTest < test_framework
   def setup
     SSDBAttr.pool.with { |conn| conn.flushdb }
@@ -57,6 +68,7 @@ class SsdbAttrTest < test_framework
       ActiveRecord::Base.connection.execute "DELETE FROM #{table}"
     end
     @post = Post.create(updated_at: 1.day.ago, saved_at: 1.day.ago, changed_at: 1.day.ago)
+    @chat_message = ChatMessage.create(uuid: SecureRandom.uuid)
   end
 
   def test_respond_to_methods
@@ -95,7 +107,11 @@ class SsdbAttrTest < test_framework
   end
 
   def test_to_ssdb_attr_key
-    assert_equal "posts:#{@post.id}:name", Post.to_ssdb_attr_key("name", @post.id)
+    assert_equal "posts:#{@post.id}:name", @post.to_ssdb_attr_key("name")
+  end
+
+  def test_custom_ssdb_attr_id
+    assert_equal "chat_messages:#{@chat_message.uuid}:content", @chat_message.to_ssdb_attr_key("content")
   end
 
   def test_update_ssdb_attrs_with_symbolize_keys
