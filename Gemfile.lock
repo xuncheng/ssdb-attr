@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ssdb-attr (0.0.3)
+    ssdb-attr (0.0.6)
       activesupport (~> 4.2.1)
       connection_pool (~> 2.1.0)
       redis (~> 3.1.0)
