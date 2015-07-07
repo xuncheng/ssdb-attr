@@ -47,7 +47,7 @@ class Post < ActiveRecord::Base
     @callback_out ||= []
   end
 
-  %i(before1 before2 after1 after2).each do |name|
+  [:before1, :before2, :after1, :after2].each do |name|
     define_method(name) do
       callback_out << name
     end
