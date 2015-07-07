@@ -43,7 +43,15 @@ module SSDB
     end
 
     def to_ssdb_attr_key(name)
-      self.class.to_ssdb_attr_key(name, id)
+      klass = self.class
+
+      custom_id = klass.instance_variable_get("@ssdb_attr_id")
+
+      if custom_id.present?
+        "#{klass.name.tableize}:#{self.send(custom_id)}:#{name}"
+      else
+        "#{klass.name.tableize}:#{id}:#{name}"
+      end
     end
 
     private
@@ -57,10 +65,9 @@ module SSDB
         @ssdb_attr_names ||= []
       end
 
-      def to_ssdb_attr_key(name, id)
-        "#{self.name.tableize}:#{id}:#{name}"
+      def ssdb_attr_id(sym)
+        @ssdb_attr_id = sym
       end
-
 
       # ssdb_attr :content,        :string,   default: 0, touch: true
       # ssdb_attr :writer_version, :integer,  default: 0, touch: [:field1, :field2, :field3]
