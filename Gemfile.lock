@@ -1,13 +1,13 @@
 PATH
   remote: .
   specs:
-    ssdb-attr (0.0.6)
+    ssdb-attr (0.0.9)
       activesupport (~> 4.2.1)
       connection_pool (~> 2.1.0)
-      redis (~> 3.1.0)
+      redis (~> 3.2.1)
 
 GEM
-  remote: http://ruby.taobao.org/
+  remote: https://ruby.taobao.org/
   specs:
     activemodel (4.2.1)
       activesupport (= 4.2.1)
@@ -31,7 +31,7 @@ GEM
     json (1.8.2)
     minitest (5.5.1)
     rake (10.4.2)
-    redis (3.1.0)
+    redis (3.2.1)
     sqlite3 (1.3.10)
     thread_safe (0.3.5)
     tzinfo (1.2.2)
