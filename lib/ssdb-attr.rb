@@ -14,7 +14,8 @@ module SSDBAttr
       timeout   = (options[:timeout]  || 2).to_i
 
       SSDBAttr.pool = ConnectionPool.new(size: pool_size, timeout: timeout) do
-        Redis.new(url: options[:url])
+        # Redis.new(url: options[:url])
+        Redis.new(host: options[:host], port: options[:port])
       end
     end
   end
