@@ -5,7 +5,8 @@ module SSDB
     included do
       instance_variable_set(:@ssdb_attr_names, [])
 
-      after_destroy :clear_ssdb_attrs
+      after_commit :save_ssdb_attrs,  on: %i(create update)
+      after_commit :clear_ssdb_attrs, on: :destroy
     end
 
     module ClassMethods
@@ -48,6 +49,14 @@ module SSDB
       end
     end
 
+    def reload
+      reload_ssdb_attrs if send(self.class.ssdb_attr_id_field)
+
+      super
+    end
+
+    private
+
     def typecaster(val, type)
       case type.to_sym
       when :string  then val.to_s
@@ -67,17 +76,10 @@ module SSDB
 
     def save_ssdb_attrs
       SSDBAttr.pool.with do |conn|
-        changed.each { |attr| conn.set("#{ssdb_attr_key(attr)}", send(attr)) }
+        (previous_changes.keys & self.class.ssdb_attr_names).each do |attr|
+          conn.set("#{ssdb_attr_key(attr)}", previous_changes[attr][1])
+        end
       end
-
-      changes_applied
-    end
-
-    def update_ssdb_attrs(attributes)
-      attr_names = attributes.stringify_keys!.keys & self.class.ssdb_attr_names
-      attr_names.each { |attr| send("#{attr}=", attributes[attr]) }
-
-      save_ssdb_attrs
     end
 
     def reload_ssdb_attrs
@@ -86,8 +88,6 @@ module SSDB
           instance_variable_set("@#{attr}", conn.get(ssdb_attr_key(attr)))
         end
       end
-
-      clear_changes_information
     end
   end
 end
