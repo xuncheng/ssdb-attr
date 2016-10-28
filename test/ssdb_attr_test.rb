@@ -68,34 +68,8 @@ class SsdbAttrTest < test_framework
     @custom_id_field = CustomIdField.create(uuid: 123)
   end
 
-  def test_respond_to_methods
-    assert_equal true, @post.respond_to?(:name)
-    assert_equal true, @post.respond_to?(:name=)
-    assert_equal true, @post.respond_to?(:name_was)
-    assert_equal true, @post.respond_to?(:name_change)
-    assert_equal true, @post.respond_to?(:name_changed?)
-    assert_equal true, @post.respond_to?(:restore_name!)
-    assert_equal true, @post.respond_to?(:name_will_change!)
-  end
 
-  def test_integer_attribute
-    assert_equal 0, @post.int_version
-    @post.int_version = "4"
-    assert_equal 4, @post.int_version
-  end
 
-  def test_with_default_value
-    assert_equal "Untitled", @post.default_title
-  end
-
-  def test_ssdb_attr_key
-    assert_equal "posts:#{@post.id}:name", @post.ssdb_attr_key("name")
-  end
-
-  def test_custom_ssdb_attr_id_field
-    assert_equal :uuid, CustomIdField.ssdb_attr_id_field
-    assert_equal "custom_id_fields:123:content", @custom_id_field.ssdb_attr_key("content")
-  end
 
   def test_update_ssdb_attrs_with_symbolize_keys
     @post.update_ssdb_attrs(title: "note one", content: "testing!!!", version: 1)

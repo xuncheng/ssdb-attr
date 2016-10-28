@@ -1,16 +1,21 @@
 require 'active_record'
 require 'nulldb'
 require 'ssdb-attr'
-require 'minitest/spec'
-require 'minitest/autorun'
-require 'minitest/mock'
-require 'minitest/pride'
 
-SSDBAttr.setup url: 'redis://localhost:6379/15'
+SSDBAttr.setup(url: 'redis://localhost:6379/15')
 
-# Setup activerecord
+# Setup ActiveRecord
 ActiveRecord::Base.raise_in_transactional_callbacks = true if ActiveRecord::VERSION::STRING >= '4.2'
+ActiveRecord::Base.establish_connection(adapter: 'sqlite3', database: ':memory:')
 
-ActiveRecord::Base.establish_connection :adapter => 'sqlite3', database: ':memory:'
+# Setup tables for test
+tbls = [
+  { 'posts' => 'updated_at DATETIME, saved_at DATETIME, changed_at DATETIME' },
+  { 'custom_id_fields' => 'uuid VARCHAR' }
+]
 
-ActiveRecord::Base.connection.execute "CREATE TABLE posts (id INTEGER NOT NULL PRIMARY KEY, updated_at DATETIME, content_updated_at DATETIME, title_updated_at DATETIME)"
+tbls.each do |tbl|
+  tbl.each do |tbl_name, sql|
+    ActiveRecord::Base.connection.execute "CREATE TABLE #{tbl_name} (id INTEGER NOT NULL PRIMARY KEY, #{sql})"
+  end
+end
