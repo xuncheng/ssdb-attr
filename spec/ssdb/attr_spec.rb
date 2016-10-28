@@ -71,16 +71,6 @@ describe SSDB::Attr do
         expect(SSDBAttr.pool.with { |conn| conn.get(post.send(:ssdb_attr_key, :name)) }).not_to eq("foobar")
       end
 
-      it "`.attribute_changed?` should return true for the changed attribute" do
-        post.name = "foobar"
-        post.int_version = 199
-
-        expect(post.name_changed?).to be_truthy
-        expect(post.int_version_changed?).to be_truthy
-        expect(post.title_changed?).to be_falsey
-        expect(post.content_changed?).to be_falsey
-      end
-
       it "`.attribute_was` should return the value before change" do
         post.default_title = "foobar"
         post.int_version = 199
@@ -95,6 +85,31 @@ describe SSDB::Attr do
 
         expect(post.name_change).to match_array(["", "foobar"])
         expect(post.int_version_change).to match_array([0, 199])
+      end
+
+      it "`.attribute_changed?` should return true for the changed attribute" do
+        post.name = "foobar"
+        post.int_version = 199
+
+        expect(post.name_changed?).to be_truthy
+        expect(post.int_version_changed?).to be_truthy
+        expect(post.title_changed?).to be_falsey
+        expect(post.content_changed?).to be_falsey
+      end
+
+      it "`.restore_attribute!` should restore the changed attributes" do
+        post.default_title = "foobar"
+        post.int_version = 199
+
+        post.restore_default_title!
+
+        expect(post.default_title).to eq("Untitled")
+        expect(post.int_version).to eq(199)
+      end
+
+      it "`.attribute_will_change!` should invoke `attributes_will_change!` on attribute name" do
+        expect(post).to receive(:attribute_will_change!).with(:default_title)
+        post.default_title_will_change!
       end
     end
 
