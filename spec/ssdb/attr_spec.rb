@@ -41,10 +41,9 @@ describe SSDB::Attr do
     end
   end
 
-  let(:post) { Post.create(updated_at: 1.day.ago, saved_at: 1.day.ago, changed_at: 1.day.ago) }
-  let(:custom_id_field) { CustomIdField.create(uuid: 123) }
-
   context "Post" do
+    let(:post) { Post.create(updated_at: 1.day.ago, saved_at: 1.day.ago, changed_at: 1.day.ago) }
+
     describe "internal variables" do
       it "should set `@ssdb_attr_names` correctly"  do
         ssdb_attr_names = Post.instance_variable_get(:@ssdb_attr_names)
@@ -61,6 +60,41 @@ describe SSDB::Attr do
         expect(post.respond_to?(:name_changed?)).to be_truthy
         expect(post.respond_to?(:restore_name!)).to be_truthy
         expect(post.respond_to?(:name_will_change!)).to be_truthy
+      end
+    end
+
+    context ".attribute=" do
+      it "`.attribute=` should change the value of current object but not in the SSDB server" do
+        post.name = "foobar"
+
+        expect(post.name).to eq("foobar")
+        expect(SSDBAttr.pool.with { |conn| conn.get(post.send(:ssdb_attr_key, :name)) }).not_to eq("foobar")
+      end
+
+      it "`.attribute_changed?` should return true for the changed attribute" do
+        post.name = "foobar"
+        post.int_version = 199
+
+        expect(post.name_changed?).to be_truthy
+        expect(post.int_version_changed?).to be_truthy
+        expect(post.title_changed?).to be_falsey
+        expect(post.content_changed?).to be_falsey
+      end
+
+      it "`.attribute_was` should return the value before change" do
+        post.default_title = "foobar"
+        post.int_version = 199
+
+        expect(post.default_title_was).to eq("Untitled")
+        expect(post.int_version).to eq(199)
+      end
+
+      it "`.attribute_change` should return the values before and after change" do
+        post.name = "foobar"
+        post.int_version = 199
+
+        expect(post.name_change).to match_array(["", "foobar"])
+        expect(post.int_version_change).to match_array([0, 199])
       end
     end
 
@@ -102,6 +136,8 @@ describe SSDB::Attr do
   end
 
   context "CustomIdField" do
+    let(:custom_id_field) { CustomIdField.create(:uuid => 123) }
+
     it "should use the custom id correctly" do
       expect(CustomIdField.ssdb_attr_id_field).to eq(:uuid)
       expect(custom_id_field.send(:ssdb_attr_key, "content")).to eq("custom_id_fields:123:content")
