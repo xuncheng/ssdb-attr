@@ -119,11 +119,13 @@ module SSDB
     # @return [void]
     #
     def save_ssdb_attrs
-      # SSDBAttr.pool.with do |conn|
-      #   (previous_changes.keys & self.class.ssdb_attr_names).each do |attr|
-      #     conn.set("#{ssdb_attr_key(attr)}", previous_changes[attr][1])
-      #   end
-      # end
+      params = (previous_changes.keys & self.class.ssdb_attr_names).map do |attr|
+        ["#{ssdb_attr_key(attr)}", previous_changes[attr][1]]
+      end
+
+      SSDBAttr.pool.with do |conn|
+        conn.mset(*params.flatten)
+      end if params.length > 0
     end
 
     #
@@ -135,10 +137,10 @@ module SSDB
     # @return [void]
     #
     def reload_ssdb_attrs
-      SSDBAttr.pool.with do |conn|
-        self.class.ssdb_attr_names.each do |attr|
-          instance_variable_set("@#{attr}", conn.get(ssdb_attr_key(attr)))
-        end
+      values = SSDBAttr.pool.with { |conn| conn.mget(*self.class.ssdb_attr_names) }
+
+      self.class.ssdb_attr_names.each_with_index do |attr, index|
+        instance_variable_set("@#{attr}", values[index])
       end
     end
   end

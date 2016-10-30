@@ -117,8 +117,12 @@ describe SSDB::Attr do
     describe ".reload" do
       it "should reload changed SSDB attributes" do
         post.default_title = "foobar"
+        post.version = 100
+
         post.reload
+
         expect(post.default_title).to eq("Untitled")
+        expect(post.version).to eq(1)
       end
     end
 
