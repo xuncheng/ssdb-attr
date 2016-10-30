@@ -113,24 +113,19 @@ describe SSDB::Attr do
       end
     end
 
+    describe ".reload" do
+      it "should reload changed SSDB attributes" do
+        post.default_title = "foobar"
+        post.reload
+        expect(post.default_title).to eq("Untitled")
+      end
+    end
+
     describe ".ssdb_attr_key" do
       it "should return correct key" do
         expect(post.send(:ssdb_attr_key, "name")).to eq("posts:#{post.id}:name")
       end
     end
-
-    # describe ".update_ssdb_attrs" do
-    #   context "with symbol keys" do
-    #     it "should update values correctly" do
-    #       post.update_ssdb_attrs(title: "note one", content: "testing!!!", version: 1)
-    #       post.reload_ssdb_attrs
-
-    #       expect(post.title).to eq("note one")
-    #       expect(post.content).to eq("testing!!!")
-    #       expect(post.version).to eq(1)
-    #     end
-    #   end
-    # end
 
     context "type: :integer" do
       it "default value should be 0" do
