@@ -11,9 +11,14 @@ module SSDB
 
     module ClassMethods
       attr_reader :ssdb_attr_names
+      attr_reader :ssdb_attr_conn_name
 
       def ssdb_attr_id_field(id = nil)
         @ssdb_attr_id_field ||= (id || :id)
+      end
+
+      def ssdb_attr_conn(conn_name)
+        @ssdb_attr_conn_name = conn_name
       end
 
       #
@@ -34,7 +39,7 @@ module SSDB
 
         define_method(name) do
           instance_variable_get("@#{name}") || begin
-            val = SSDBAttr.pool.with { |conn| conn.get(ssdb_attr_key(name)) } || options[:default]
+            val = ssdb_attr_pool.with { |conn| conn.get(ssdb_attr_key(name)) } || options[:default]
             instance_variable_set("@#{name}", val)
           end
           typecaster(instance_variable_get("@#{name}"), type)
@@ -72,6 +77,10 @@ module SSDB
 
     private
 
+    def ssdb_attr_pool
+      SSDBAttr.pool(self.class.ssdb_attr_conn_name)
+    end
+
     #
     # Cast the value from SSDB to the correct type.
     #
@@ -107,7 +116,7 @@ module SSDB
     # @return [void]
     #
     def clear_ssdb_attrs
-      SSDBAttr.pool.with do |conn|
+      ssdb_attr_pool.with do |conn|
         self.class.ssdb_attr_names.each { |attr| conn.del(ssdb_attr_key(attr)) }
       end
     end
@@ -123,7 +132,7 @@ module SSDB
         ["#{ssdb_attr_key(attr)}", previous_changes[attr][1]]
       end
 
-      SSDBAttr.pool.with do |conn|
+      ssdb_attr_pool.with do |conn|
         conn.mset(*params.flatten)
       end if params.length > 0
     end
@@ -137,7 +146,7 @@ module SSDB
     # @return [void]
     #
     def reload_ssdb_attrs
-      values = SSDBAttr.pool.with { |conn| conn.mget(*self.class.ssdb_attr_names) }
+      values = ssdb_attr_pool.with { |conn| conn.mget(*self.class.ssdb_attr_names) }
 
       self.class.ssdb_attr_names.each_with_index do |attr, index|
         instance_variable_set("@#{attr}", values[index])

@@ -31,9 +31,20 @@ class CustomIdField < ActiveRecord::Base
   ssdb_attr_id_field :uuid
 end
 
+class CustomConnName < ActiveRecord::Base
+  include SSDB::Attr
+
+  ssdb_attr_conn :foo_conn
+
+  ssdb_attr :foo_id, :integer
+end
+
 describe SSDB::Attr do
 
   before(:all) do
+    # Connect to test SSDB server
+    SSDBAttr.setup(:url => "redis://localhost:8888")
+
     # Clean up SSDB
     system('printf "7\nflushdb\n\n4\nping\n\n" | nc 127.0.0.1 8888 -i 1 > /dev/null')
 
@@ -156,6 +167,28 @@ describe SSDB::Attr do
     it "should use the custom id correctly" do
       expect(CustomIdField.ssdb_attr_id_field).to eq(:uuid)
       expect(custom_id_field.send(:ssdb_attr_key, "content")).to eq("custom_id_fields:123:content")
+    end
+  end
+
+  context "CustomConnName" do
+
+    it "should respond to methods" do
+      expect(CustomConnName).to respond_to(:ssdb_attr_conn)
+    end
+
+    it "should set SSDBAttr connection for class correct" do
+      expect(CustomConnName.ssdb_attr_conn_name).to eq(:foo_conn)
+    end
+
+    describe ".ssdb_attr_pool" do
+      it do
+        ccn = CustomConnName.new
+
+        pool_dbl = double(ConnectionPool)
+
+        expect(SSDBAttr).to receive(:pool).with(:foo_conn).and_return(pool_dbl)
+        expect(ccn.send(:ssdb_attr_pool)).to eq(pool_dbl)
+      end
     end
   end
 end
