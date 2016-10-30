@@ -34,7 +34,8 @@ end
 describe SSDB::Attr do
 
   before(:all) do
-    SSDBAttr.pool.with { |conn| conn.flushdb }
+    # Clean up SSDB
+    system('printf "7\nflushdb\n\n4\nping\n\n" | nc 127.0.0.1 8888 -i 1 > /dev/null')
 
     ActiveRecord::Base.connection.tables.each do |table|
       ActiveRecord::Base.connection.execute "DELETE FROM #{table}"

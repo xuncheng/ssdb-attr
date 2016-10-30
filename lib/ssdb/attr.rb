@@ -119,11 +119,11 @@ module SSDB
     # @return [void]
     #
     def save_ssdb_attrs
-      SSDBAttr.pool.with do |conn|
-        (previous_changes.keys & self.class.ssdb_attr_names).each do |attr|
-          conn.set("#{ssdb_attr_key(attr)}", previous_changes[attr][1])
-        end
-      end
+      # SSDBAttr.pool.with do |conn|
+      #   (previous_changes.keys & self.class.ssdb_attr_names).each do |attr|
+      #     conn.set("#{ssdb_attr_key(attr)}", previous_changes[attr][1])
+      #   end
+      # end
     end
 
     #
