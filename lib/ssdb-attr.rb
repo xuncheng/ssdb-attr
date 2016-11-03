@@ -71,7 +71,7 @@ module SSDBAttr
     def create_pool(pool_options)
       defaults = { :pool_size => 1, :timeout => 1 }
 
-      options = pool_options.reverse_merge(defaults) { |_, oldval, newval| oldval || newval }.deep_symbolize_keys
+      options = pool_options.reverse_merge(defaults).deep_symbolize_keys
 
       ConnectionPool.new(:size => options[:pool_size], :timeout => options[:timeout]) do
         create_conn(options)
