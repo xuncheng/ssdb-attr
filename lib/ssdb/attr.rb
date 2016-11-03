@@ -65,9 +65,9 @@ module SSDB
     # @return [void]
     #
     def reload
-      reload_ssdb_attrs if send(self.class.ssdb_attr_id_field)
-
-      super
+      super.tap do
+        reload_ssdb_attrs
+      end
     end
 
     private
