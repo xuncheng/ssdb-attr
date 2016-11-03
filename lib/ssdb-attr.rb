@@ -32,11 +32,6 @@ module SSDBAttr
 
       SSDBAttr.pools = {}
 
-      defaults = {
-        :pool_size => 1,
-        :timeout   => 2
-      }
-
       if configuration.is_a?(Hash)
         # Only one and the default connection pool.
         conf = configuration.symbolize_keys
