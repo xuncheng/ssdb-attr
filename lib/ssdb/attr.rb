@@ -11,14 +11,14 @@ module SSDB
 
     module ClassMethods
       attr_reader :ssdb_attr_names
-      attr_reader :ssdb_attr_conn_name
+      attr_reader :ssdb_attr_pool_name
 
       def ssdb_attr_id_field(id = nil)
         @ssdb_attr_id_field ||= (id || :id)
       end
 
-      def ssdb_attr_conn(conn_name)
-        @ssdb_attr_conn_name = conn_name
+      def ssdb_attr_pool(pool_name)
+        @ssdb_attr_pool_name = pool_name
       end
 
       #
@@ -78,7 +78,7 @@ module SSDB
     private
 
     def ssdb_attr_pool
-      SSDBAttr.pool(self.class.ssdb_attr_conn_name)
+      SSDBAttr.pool(self.class.ssdb_attr_pool_name)
     end
 
     #

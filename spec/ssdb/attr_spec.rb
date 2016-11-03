@@ -31,10 +31,10 @@ class CustomIdField < ActiveRecord::Base
   ssdb_attr_id_field :uuid
 end
 
-class CustomConnName < ActiveRecord::Base
+class CustomPoolName < ActiveRecord::Base
   include SSDB::Attr
 
-  ssdb_attr_conn :foo_conn
+  ssdb_attr_pool :foo_pool
 
   ssdb_attr :foo_id, :integer
 end
@@ -170,23 +170,23 @@ describe SSDB::Attr do
     end
   end
 
-  context "CustomConnName" do
+  context "CustomPoolName" do
 
     it "should respond to methods" do
-      expect(CustomConnName).to respond_to(:ssdb_attr_conn)
+      expect(CustomPoolName).to respond_to(:ssdb_attr_pool)
     end
 
     it "should set SSDBAttr connection for class correct" do
-      expect(CustomConnName.ssdb_attr_conn_name).to eq(:foo_conn)
+      expect(CustomPoolName.ssdb_attr_pool_name).to eq(:foo_pool)
     end
 
     describe ".ssdb_attr_pool" do
       it do
-        ccn = CustomConnName.new
+        ccn = CustomPoolName.new
 
         pool_dbl = double(ConnectionPool)
 
-        expect(SSDBAttr).to receive(:pool).with(:foo_conn).and_return(pool_dbl)
+        expect(SSDBAttr).to receive(:pool).with(:foo_pool).and_return(pool_dbl)
         expect(ccn.send(:ssdb_attr_pool)).to eq(pool_dbl)
       end
     end

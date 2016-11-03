@@ -10,7 +10,7 @@ ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => ":me
 tbls = [
   { "posts" => "updated_at DATETIME, saved_at DATETIME, changed_at DATETIME" },
   { "custom_id_fields" => "uuid VARCHAR" },
-  { "custom_conn_names" => "uuid VARCHAR" }
+  { "custom_pool_names" => "uuid VARCHAR" }
 ]
 
 tbls.each do |tbl|
