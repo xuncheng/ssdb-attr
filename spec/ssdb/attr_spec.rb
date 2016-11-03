@@ -9,17 +9,14 @@ class Post < ActiveRecord::Base
   ssdb_attr :title, :string
   ssdb_attr :content, :string
   ssdb_attr :version, :integer, default: 1
+  ssdb_attr :default_version, :integer, :default => 100
+  ssdb_attr :field_with_validation, :string
 
-  # before_update_ssdb_attrs :before1, :before2
-  # after_update_ssdb_attrs :after1, :after2
+  validate :validate_field
 
-  def callback_out
-    @callback_out ||= []
-  end
-
-  [:before1, :before2, :after1, :after2].each do |name|
-    define_method(name) do
-      callback_out << name
+  def validate_field
+    if field_with_validation == "foobar"
+      errors.add(:field_with_validation, "foobar error")
     end
   end
 end
@@ -27,8 +24,8 @@ end
 class CustomIdField < ActiveRecord::Base
   include SSDB::Attr
 
+  ssdb_attr_id :uuid
   ssdb_attr :content, :string
-  ssdb_attr_id_field :uuid
 end
 
 describe SSDB::Attr do
@@ -44,89 +41,80 @@ describe SSDB::Attr do
 
   context "Post" do
     let(:post) { Post.create(updated_at: 1.day.ago, saved_at: 1.day.ago, changed_at: 1.day.ago) }
+    let(:redis) { Redis.new(:url => 'redis://localhost:8888') }
 
-    describe "internal variables" do
+    describe "@ssdb_attr_names" do
       it "should set `@ssdb_attr_names` correctly"  do
         ssdb_attr_names = Post.instance_variable_get(:@ssdb_attr_names)
-        expect(ssdb_attr_names).to match_array(["name", "int_version", "default_title", "title", "content", "version"])
+        expect(ssdb_attr_names).to match_array(["name", "int_version", "default_title", "title",
+          "content", "version", "default_version", "field_with_validation"])
       end
     end
 
-    describe "respond to methods" do
-      it do
-        expect(post.respond_to?(:name)).to be_truthy
-        expect(post.respond_to?(:name=)).to be_truthy
-        expect(post.respond_to?(:name_was)).to be_truthy
-        expect(post.respond_to?(:name_change)).to be_truthy
-        expect(post.respond_to?(:name_changed?)).to be_truthy
-        expect(post.respond_to?(:restore_name!)).to be_truthy
-        expect(post.respond_to?(:name_will_change!)).to be_truthy
+    it "should respond to methods" do
+      expect(post.respond_to?(:name)).to be true
+      expect(post.respond_to?(:name=)).to be true
+      expect(post.respond_to?(:name_was)).to be true
+      expect(post.respond_to?(:name_change)).to be true
+      expect(post.respond_to?(:name_changed?)).to be true
+      expect(post.respond_to?(:restore_name!)).to be true
+      expect(post.respond_to?(:name_will_change!)).to be true
+    end
+
+    describe "#attribute=" do
+      it "shouldn't change the attribute value in SSDB" do
+        post.title = "foobar"
+        expect(redis.get(post.send(:ssdb_attr_key, :title))).not_to eq("foobar")
+      end
+
+      it "should change the attribute value" do
+        post.title = "foobar"
+        expect(post.title).to eq("foobar")
+      end
+
+      it "should track attirbute changes if value changed" do
+        expect(post).to receive(:title_will_change!)
+        post.title = "foobar"
+      end
+
+      it "shouldn't track attirbute changes unless value changed" do
+        expect(post).not_to receive(:title_will_change!)
+        post.title = ""
       end
     end
 
-    context ".attribute=" do
-      it "`.attribute=` should change the value of current object but not in the SSDB server" do
-        post.name = "foobar"
+    describe "#reload_ssdb_attrs" do
+      it "should reload attribute values from SSDB" do
+        post = Post.create(title: "foobar", version: 4)
+        post.title = "fizzbuzz"
+        post.version = 3
 
-        expect(post.name).to eq("foobar")
-        expect(SSDBAttr.pool.with { |conn| conn.get(post.send(:ssdb_attr_key, :name)) }).not_to eq("foobar")
-      end
-
-      it "`.attribute_was` should return the value before change" do
-        post.default_title = "foobar"
-        post.int_version = 199
-
-        expect(post.default_title_was).to eq("Untitled")
-        expect(post.int_version_was).to eq(0)
-      end
-
-      it "`.attribute_change` should return the values before and after change" do
-        post.name = "foobar"
-        post.int_version = 199
-
-        expect(post.name_change).to match_array(["", "foobar"])
-        expect(post.int_version_change).to match_array([0, 199])
-      end
-
-      it "`.attribute_changed?` should return true for the changed attribute" do
-        post.name = "foobar"
-        post.int_version = 199
-
-        expect(post.name_changed?).to be_truthy
-        expect(post.int_version_changed?).to be_truthy
-        expect(post.title_changed?).to be_falsey
-        expect(post.content_changed?).to be_falsey
-      end
-
-      it "`.restore_attribute!` should restore the changed attributes" do
-        post.default_title = "foobar"
-        post.int_version = 199
-
-        post.restore_default_title!
-
-        expect(post.default_title).to eq("Untitled")
-        expect(post.int_version).to eq(199)
-      end
-
-      it "`.attribute_will_change!` should invoke `attributes_will_change!` on attribute name" do
-        expect(post).to receive(:attribute_will_change!).with(:default_title)
-        post.default_title_will_change!
+        post.send(:reload_ssdb_attrs)
+        expect(post.title).to eq("foobar")
+        expect(post.version).to eq(4)
       end
     end
 
-    describe ".reload" do
-      it "should reload changed SSDB attributes" do
-        post.default_title = "foobar"
-        post.version = 100
-
-        post.reload
-
-        expect(post.default_title).to eq("Untitled")
-        expect(post.version).to eq(1)
+    describe "#save_ssdb_attrs" do
+      it "should save attribute values in SSDB" do
+        allow(post).to receive(:previous_changes).and_return({"title"=>["", "foobar2"]})
+        post.send(:save_ssdb_attrs)
+        expect(redis.get("posts:#{post.id}:title")).to eq("foobar2")
       end
     end
 
-    describe ".ssdb_attr_key" do
+    describe "#clear_ssdb_attrs" do
+      before do
+        post.update(:title => "foobar2")
+      end
+
+      it "should remove attribute from ssdb" do
+        post.send(:clear_ssdb_attrs)
+        expect(redis.exists("posts:#{post.id}:title")).to be false
+      end
+    end
+
+    describe "#ssdb_attr_key" do
       it "should return correct key" do
         expect(post.send(:ssdb_attr_key, "name")).to eq("posts:#{post.id}:name")
       end
@@ -141,11 +129,61 @@ describe SSDB::Attr do
         post.int_version = 4
         expect(post.int_version).to eq(4)
       end
+
+      it "default value with `:default` option" do
+        expect(post.default_version).to eq(100)
+      end
     end
 
     context "type: :string" do
-      it "set default value should work" do
+      it "default value" do
+        expect(post.title).to eq("")
+      end
+
+      it "default value with `:default` option" do
         expect(post.default_title).to eq("Untitled")
+      end
+    end
+
+    context "callbacks" do
+      it "should save attribute values in SSDB when AR object save" do
+        post = Post.new
+        expect(post).to receive(:save_ssdb_attrs)
+        post.save
+      end
+
+      it "should clear attribute values in SSDB when AR object destroyed" do
+        expect(post).to receive(:clear_ssdb_attrs)
+        post.destroy
+      end
+    end
+
+    context "validation" do
+      it "should call the validation method" do
+        post.field_with_validation = "hellow world"
+        expect(post).to receive(:validate_field)
+        post.save
+      end
+
+      context "on validation passed" do
+        it do
+          post.field_with_validation = "hello world"
+
+          expect(post.save).to eq(true)
+          expect(redis.get("posts:#{post.id}:field_with_validation")).to eq("hello world")
+          expect(post.errors.empty?).to be_truthy
+        end
+      end
+
+      context "on validation failed" do
+        it "should not update the value in SSDB if validation fails" do
+          post.field_with_validation = "foobar"
+
+          expect(post.save).to eq(false)
+          expect(redis.get("posts:#{post.id}:field_with_validation")).not_to eq("foobar")
+          expect(post.errors.empty?).not_to be_truthy
+          expect(post.errors[:field_with_validation]).to eq(["foobar error"])
+        end
       end
     end
   end
@@ -154,7 +192,7 @@ describe SSDB::Attr do
     let(:custom_id_field) { CustomIdField.create(:uuid => 123) }
 
     it "should use the custom id correctly" do
-      expect(CustomIdField.ssdb_attr_id_field).to eq(:uuid)
+      expect(CustomIdField.instance_variable_get(:@ssdb_attr_id_field)).to eq(:uuid)
       expect(custom_id_field.send(:ssdb_attr_key, "content")).to eq("custom_id_fields:123:content")
     end
   end

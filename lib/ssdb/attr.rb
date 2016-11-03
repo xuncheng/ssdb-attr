@@ -11,9 +11,18 @@ module SSDB
 
     module ClassMethods
       attr_reader :ssdb_attr_names
+      attr_reader :ssdb_attr_id_field
 
-      def ssdb_attr_id_field(id = nil)
-        @ssdb_attr_id_field ||= (id || :id)
+      #
+      # 设置获取 SSDB Attr Id 的方式
+      #
+      # @param [String/Symbol] field_name
+      #
+      # @return [String]
+      #
+      def ssdb_attr_id(field_name)
+        raise if field_name.nil?
+        @ssdb_attr_id_field = field_name
       end
 
       #
@@ -65,9 +74,9 @@ module SSDB
     # @return [void]
     #
     def reload
-      reload_ssdb_attrs if send(self.class.ssdb_attr_id_field)
-
-      super
+      super.tap do
+        reload_ssdb_attrs
+      end
     end
 
     private
@@ -89,6 +98,11 @@ module SSDB
       end
     end
 
+    def ssdb_attr_id
+      send(self.class.ssdb_attr_id_field || :id)
+    end
+
+
     #
     # Return the SSDB key for a attribute
     #
@@ -97,7 +111,7 @@ module SSDB
     # @return [String]
     #
     def ssdb_attr_key(name)
-      "#{self.class.name.tableize}:#{send(self.class.ssdb_attr_id_field)}:#{name}"
+      "#{self.class.name.tableize}:#{ssdb_attr_id}:#{name}"
     end
 
     #
