@@ -77,7 +77,7 @@ describe SSDB::Attr do
         post.int_version = 199
 
         expect(post.default_title_was).to eq("Untitled")
-        expect(post.int_version).to eq(199)
+        expect(post.int_version_was).to eq(0)
       end
 
       it "`.attribute_change` should return the values before and after change" do
