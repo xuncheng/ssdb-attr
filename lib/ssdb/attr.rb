@@ -26,6 +26,13 @@ module SSDB
         @ssdb_attr_id_field = field_name
       end
 
+      #
+      # Specify which SSDB ConnectionPool current class should use, by name specified in `SSDBAttr.setup`
+      #
+      # @param [String/Symbol] pool_name
+      #
+      # @return [String/Symbol]
+      #
       def ssdb_attr_pool(pool_name)
         @ssdb_attr_pool_name = pool_name
       end
@@ -86,6 +93,12 @@ module SSDB
 
     private
 
+    #
+    # Return the ConnectionPool used by current Class.
+    #
+    #
+    # @return [ConnectionPool]
+    #
     def ssdb_attr_pool
       SSDBAttr.pool(self.class.ssdb_attr_pool_name)
     end

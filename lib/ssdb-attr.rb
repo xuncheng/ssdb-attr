@@ -23,6 +23,13 @@ module SSDBAttr
     # `pool`: Pool size of the connection pool. Default to 1.
     # `timeout`: Timeout of the connection pool, in second, Default to 2.
     #
+    #  Examples:
+    #
+    # `SSDBAttr.setup({ :url => "redis://localhost:8888" })`: will setup a single pool to the SSDB instance `url` points to.
+    # `SSDBAttr.setup({ :url => "redis://localhost:8888", :name => :main })`: will setup a named single pool.
+    # `SSDBAttr.setup([ { :url => "redis://localhost:8888", :name => :pool1 }, { :url => "redis://localhost:6379", :name => :pool2 } ])`: will setup two named pools.
+    #
+    #
     # @param [Hash] options
     #
     # @return [void]
