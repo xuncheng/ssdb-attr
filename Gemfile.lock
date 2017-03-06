@@ -26,12 +26,33 @@ GEM
       tzinfo (~> 1.1)
     arel (6.0.0)
     builder (3.2.2)
+    coderay (1.1.1)
     connection_pool (2.2.0)
+    diff-lcs (1.2.5)
     i18n (0.7.0)
     json (1.8.2)
+    method_source (0.8.2)
     minitest (5.5.1)
+    pry (0.10.4)
+      coderay (~> 1.1.0)
+      method_source (~> 0.8.1)
+      slop (~> 3.4)
     rake (10.4.2)
     redis (3.2.2)
+    rspec (3.5.0)
+      rspec-core (~> 3.5.0)
+      rspec-expectations (~> 3.5.0)
+      rspec-mocks (~> 3.5.0)
+    rspec-core (3.5.4)
+      rspec-support (~> 3.5.0)
+    rspec-expectations (3.5.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.5.0)
+    rspec-mocks (3.5.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.5.0)
+    rspec-support (3.5.0)
+    slop (3.6.0)
     sqlite3 (1.3.10)
     thread_safe (0.3.5)
     tzinfo (1.2.2)
@@ -44,10 +65,11 @@ DEPENDENCIES
   activerecord (~> 4.2.1)
   activerecord-nulldb-adapter
   bundler (~> 1.5)
-  minitest (~> 5.5.1)
+  pry
   rake
+  rspec (~> 3.5.0)
   sqlite3
   ssdb-attr!
 
 BUNDLED WITH
-   1.12.5
+   1.13.6
