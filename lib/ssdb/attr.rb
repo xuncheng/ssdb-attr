@@ -85,7 +85,7 @@ module SSDB
     #
     # @return [void]
     #
-    def reload
+    def reload(options = nil)
       super.tap do
         reload_ssdb_attrs
       end
