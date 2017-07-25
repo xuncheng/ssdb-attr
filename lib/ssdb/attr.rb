@@ -3,14 +3,14 @@ module SSDB
     extend ActiveSupport::Concern
 
     included do
-      instance_variable_set(:@ssdb_attr_names, [])
+      instance_variable_set(:@ssdb_attr_definition, {})
 
       after_commit :save_ssdb_attrs,  on: %i(create update)
       after_commit :clear_ssdb_attrs, on: :destroy
     end
 
     module ClassMethods
-      attr_reader :ssdb_attr_names
+      attr_reader :ssdb_attr_definition
       attr_reader :ssdb_attr_id_field
       attr_reader :ssdb_attr_pool_name
 
@@ -37,6 +37,10 @@ module SSDB
         @ssdb_attr_pool_name = pool_name
       end
 
+      def ssdb_attr_names
+        @ssdb_attr_definition.keys
+      end
+
       #
       # Method to define a SSDB attribute in a Ruby Class
       #
@@ -51,14 +55,13 @@ module SSDB
           raise "Type not supported, only `:string` and `:integer` are supported now."
         end
 
-        @ssdb_attr_names << name.to_s
+        @ssdb_attr_definition[name.to_s] = type.to_s
 
         define_method(name) do
           instance_variable_get("@#{name}") || begin
             val = ssdb_attr_pool.with { |conn| conn.get(ssdb_attr_key(name)) } || options[:default]
-            instance_variable_set("@#{name}", val)
+            instance_variable_set("@#{name}", typecaster(val, type))
           end
-          typecaster(instance_variable_get("@#{name}"), type)
         end
 
         define_method("#{name}=") do |val|
@@ -173,10 +176,11 @@ module SSDB
     # @return [void]
     #
     def reload_ssdb_attrs
-      values = ssdb_attr_pool.with { |conn| conn.mget(*self.class.ssdb_attr_names) }
+      keys = self.class.ssdb_attr_names.map { |name| ssdb_attr_key(name) }
+      values = ssdb_attr_pool.with { |conn| conn.mget(keys) }
 
       self.class.ssdb_attr_names.each_with_index do |attr, index|
-        instance_variable_set("@#{attr}", values[index])
+        instance_variable_set("@#{attr}", typecaster(values[index], self.class.ssdb_attr_definition[attr]))
       end
     end
   end
