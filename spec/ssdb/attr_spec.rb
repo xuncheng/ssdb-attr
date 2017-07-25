@@ -54,11 +54,18 @@ describe SSDB::Attr do
     let(:post) { Post.create(updated_at: 1.day.ago, saved_at: 1.day.ago, changed_at: 1.day.ago) }
     let(:redis) { Redis.new(:url => 'redis://localhost:8888') }
 
-    describe "@ssdb_attr_names" do
-      it "should set `@ssdb_attr_names` correctly"  do
-        ssdb_attr_names = Post.instance_variable_get(:@ssdb_attr_names)
-        expect(ssdb_attr_names).to match_array(["name", "int_version", "default_title", "title",
-          "content", "version", "default_version", "field_with_validation"])
+    describe "@ssdb_attr_definition" do
+      it "should set `@ssdb_attr_definition` correctly"  do
+        ssdb_attr_definition = Post.instance_variable_get(:@ssdb_attr_definition)
+
+        expect(ssdb_attr_definition["name"]).to eq("string")
+        expect(ssdb_attr_definition["int_version"]).to eq("integer")
+        expect(ssdb_attr_definition["default_title"]).to eq("string")
+        expect(ssdb_attr_definition["title"]).to eq("string")
+        expect(ssdb_attr_definition["content"]).to eq("string")
+        expect(ssdb_attr_definition["version"]).to eq("integer")
+        expect(ssdb_attr_definition["default_version"]).to eq("integer")
+        expect(ssdb_attr_definition["field_with_validation"]).to eq("string")
       end
     end
 
@@ -101,8 +108,8 @@ describe SSDB::Attr do
         post.version = 3
 
         post.send(:reload_ssdb_attrs)
-        expect(post.title).to eq("foobar")
-        expect(post.version).to eq(4)
+        expect(post.instance_variable_get(:@title)).to eq("foobar")
+        expect(post.instance_variable_get(:@version)).to eq(4)
       end
     end
 
