@@ -94,6 +94,25 @@ module SSDB
       end
     end
 
+    #
+    # Load the values of all specified attrs.
+    #
+    #
+    # @return [void]
+    #
+    def load_ssdb_attrs(*fields)
+      fields = (fields.map(&:to_s) & self.class.ssdb_attr_names)
+
+      values = ssdb_attr_pool.with do |conn|
+        conn.mget(fields.map { |name| ssdb_attr_key(name) })
+      end
+
+      fields.each_with_index do |attr, index|
+        value = typecaster(values[index], self.class.ssdb_attr_definition[attr])
+        instance_variable_set("@#{attr}", value)
+      end
+    end
+
     private
 
     #

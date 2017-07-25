@@ -132,6 +132,18 @@ describe SSDB::Attr do
       end
     end
 
+    describe "#load_ssdb_attrs" do
+      it "loads the values of all specified attrs" do
+        post = Post.create(title: "foobar", version: 4)
+        post = Post.find(post.id)
+        expect(post.instance_variable_get(:@title)).to be_nil
+
+        post.load_ssdb_attrs(:title, :version)
+        expect(post.instance_variable_get(:@title)).to eq("foobar")
+        expect(post.instance_variable_get(:@version)).to eq(4)
+      end
+    end
+
     describe "#ssdb_attr_key" do
       it "should return correct key" do
         expect(post.send(:ssdb_attr_key, "name")).to eq("posts:#{post.id}:name")
