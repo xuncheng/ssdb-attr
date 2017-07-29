@@ -1,0 +1,22 @@
+language: ruby
+
+rvm:
+  - 2.3.0
+
+before_install:
+  - git clone -b stable-1.9.2 git://github.com/ideawu/ssdb.git
+  - cd ssdb
+  - make
+  - cd ..
+
+before_script:
+  - ./ssdb/ssdb-server -d ./ssdb/ssdb.conf
+
+after_script:
+  - killall -w ssdb-server
+
+script:
+  - bundle exec rake
+
+notifications:
+  email: false
