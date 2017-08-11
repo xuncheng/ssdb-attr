@@ -129,25 +129,6 @@ describe SSDBAttr do
   end
 
   describe ".load_attrs" do
-    class Post < ActiveRecord::Base
-      include SSDB::Attr
-
-      ssdb_attr :name, :string
-      ssdb_attr :version, :integer, default: 1
-    end
-
-    before(:all) do
-      # Connect to test SSDB server
-      SSDBAttr.setup(:url => "redis://localhost:8888")
-
-      # Clean up SSDB
-      system('printf "7\nflushdb\n\n4\nping\n\n" | nc 127.0.0.1 8888 -i 1 > /dev/null')
-
-      ActiveRecord::Base.connection.tables.each do |table|
-        ActiveRecord::Base.connection.execute "DELETE FROM #{table}"
-      end
-    end
-
     it "returns the values correctly" do
       post1 = Post.create(:name => "lol", :version => 2)
       post2 = Post.create(:name => "dota", :version => 3)
