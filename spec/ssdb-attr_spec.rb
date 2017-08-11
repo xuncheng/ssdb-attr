@@ -1,5 +1,4 @@
-# require 'spec_helper'
-require "ssdb-attr"
+require "spec_helper"
 
 describe SSDBAttr do
 
@@ -125,6 +124,85 @@ describe SSDBAttr do
         expect(conn).to be_a(Redis)
         expect(conn.client.host).to eq("localhost")
         expect(conn.client.port).to eq(8888)
+      end
+    end
+  end
+
+  describe ".load_attrs" do
+    class Post < ActiveRecord::Base
+      include SSDB::Attr
+
+      ssdb_attr :name, :string
+      ssdb_attr :version, :integer, default: 1
+    end
+
+    before(:all) do
+      # Connect to test SSDB server
+      SSDBAttr.setup(:url => "redis://localhost:8888")
+
+      # Clean up SSDB
+      system('printf "7\nflushdb\n\n4\nping\n\n" | nc 127.0.0.1 8888 -i 1 > /dev/null')
+
+      ActiveRecord::Base.connection.tables.each do |table|
+        ActiveRecord::Base.connection.execute "DELETE FROM #{table}"
+      end
+    end
+
+    it "returns the values correctly" do
+      post1 = Post.create(:name => "lol", :version => 2)
+      post2 = Post.create(:name => "dota", :version => 3)
+
+      posts = Post.where(:id => [post1.id, post2.id])
+
+      posts.each do |post|
+        expect(post.instance_variable_get(:@name)).to be(nil)
+        expect(post.instance_variable_get(:@version)).to be(nil)
+      end
+
+      SSDBAttr.load_attrs(posts, :name, :version)
+
+      expect(posts[0].instance_variable_get(:@name)).to eq("lol")
+      expect(posts[0].instance_variable_get(:@version)).to eq(2)
+
+      expect(posts[1].instance_variable_get(:@name)).to eq("dota")
+      expect(posts[1].instance_variable_get(:@version)).to eq(3)
+    end
+
+    it "returns default value correctly if no value in ssdb" do
+      post1 = Post.create(:name => "lol")
+      post2 = Post.create(:name => "dota")
+
+      posts = Post.where(:id => [post1.id, post2.id])
+
+      posts.each do |post|
+        expect(post.instance_variable_get(:@name)).to be(nil)
+        expect(post.instance_variable_get(:@version)).to be(nil)
+      end
+
+      SSDBAttr.load_attrs(posts, :name, :version)
+
+      expect(posts[0].instance_variable_get(:@name)).to eq("lol")
+      expect(posts[0].instance_variable_get(:@version)).to eq(1)
+
+      expect(posts[1].instance_variable_get(:@name)).to eq("dota")
+      expect(posts[1].instance_variable_get(:@version)).to eq(1)
+    end
+
+    it "doesn't define instance variables for undefined ssdb atts" do
+      post1 = Post.create(:name => "lol")
+      post2 = Post.create(:name => "dota")
+
+      posts = Post.where(:id => [post1.id, post2.id])
+
+      posts.each do |post|
+        expect(post.instance_variable_get(:@name)).to be(nil)
+        expect(post.instance_variable_get(:@version)).to be(nil)
+      end
+
+      SSDBAttr.load_attrs(posts, :undefined_field)
+
+      posts.each do |post|
+        expect(post.instance_variable_defined?(:@undefined_field)).to be(false)
       end
     end
   end
