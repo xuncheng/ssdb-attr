@@ -72,6 +72,7 @@ describe SSDB::Attr do
     it "should respond to methods" do
       expect(post.respond_to?(:name)).to be true
       expect(post.respond_to?(:name=)).to be true
+      expect(post.respond_to?(:name_default_value)).to be true
       expect(post.respond_to?(:name_was)).to be true
       expect(post.respond_to?(:name_change)).to be true
       expect(post.respond_to?(:name_changed?)).to be true
@@ -98,6 +99,16 @@ describe SSDB::Attr do
       it "shouldn't track attirbute changes unless value changed" do
         expect(post).not_to receive(:title_will_change!)
         post.title = ""
+      end
+    end
+
+    describe "#attirbute_default_value" do
+      it "returns correct default value" do
+        post.default_title = "changed"
+        post.default_version = 99
+
+        expect(post.default_title_default_value).to eq("Untitled")
+        expect(post.default_version_default_value).to eq(100)
       end
     end
 

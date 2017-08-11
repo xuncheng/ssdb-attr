@@ -69,6 +69,10 @@ module SSDB
           instance_variable_set("@#{name}", val)
         end
 
+        define_method("#{name}_default_value") do
+          typecaster(options[:default], type)
+        end
+
         define_method("#{name}_was")          { attribute_was(name) }
 
         define_method("#{name}_change")       { attribute_change(name) }
@@ -113,16 +117,15 @@ module SSDB
       end
     end
 
-    private
-
     #
-    # Return the ConnectionPool used by current Class.
+    # Return the SSDB key for a attribute
     #
+    # @param [String] name Attribute name.
     #
-    # @return [ConnectionPool]
+    # @return [String]
     #
-    def ssdb_attr_pool
-      SSDBAttr.pool(self.class.ssdb_attr_pool_name)
+    def ssdb_attr_key(name)
+      "#{self.class.name.tableize}:#{ssdb_attr_id}:#{name}"
     end
 
     #
@@ -142,20 +145,20 @@ module SSDB
       end
     end
 
-    def ssdb_attr_id
-      send(self.class.ssdb_attr_id_field || :id)
+    private
+
+    #
+    # Return the ConnectionPool used by current Class.
+    #
+    #
+    # @return [ConnectionPool]
+    #
+    def ssdb_attr_pool
+      SSDBAttr.pool(self.class.ssdb_attr_pool_name)
     end
 
-
-    #
-    # Return the SSDB key for a attribute
-    #
-    # @param [String] name Attribute name.
-    #
-    # @return [String]
-    #
-    def ssdb_attr_key(name)
-      "#{self.class.name.tableize}:#{ssdb_attr_id}:#{name}"
+    def ssdb_attr_id
+      send(self.class.ssdb_attr_id_field || :id)
     end
 
     #
