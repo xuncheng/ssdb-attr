@@ -6,6 +6,10 @@ This gem provides an intuitive interface to define attributes on your ActiveMode
 
 # Changelog
 
+### 0.1.4
+
+- Add `SSDBAttr.load_attrs(objects, *fields)` to load multiple attrs for multiple same objects at one time.
+
 ### 0.1.3
 
 - Add `load_ssdb_attrs` to get multiple values from SSDB once to avoid multiple SSDB calls.
