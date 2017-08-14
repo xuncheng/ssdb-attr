@@ -93,5 +93,44 @@ module SSDBAttr
       end
     end
 
+    #
+    # 获取多个 AR 对象的多个 SSDB 字段
+    #
+    # 例如:
+    #
+    # notes = Note.where("<some where>").limit(15)
+    # SSDBAttr.load_attrs(notes, :public_title, :public_content)
+    #
+    # @param [Array] objects
+    # @param [Array] fields
+    #
+    # @return [ActiveRecord::Relation|Array]
+    #
+    def load_attrs(objects, *fields)
+      fields.map!(&:to_s)
+
+      keys = objects.flat_map do |object|
+        fields.map { |name| object.ssdb_attr_key(name) }
+      end
+      values = SSDBAttr.pool.with { |conn| conn.mget(keys) }
+      key_values = keys.zip(values).to_h
+
+      objects.each do |object|
+        fields.each do |name|
+          next unless object.class.ssdb_attr_names.include?(name.to_s)
+
+          value =
+            if (raw_value = key_values[object.ssdb_attr_key(name)]).present?
+              object.typecaster(raw_value, object.class.ssdb_attr_definition[name])
+            else
+              object.public_send("#{name}_default_value")
+            end
+
+          object.instance_variable_set("@#{name}", value)
+        end
+      end
+
+      objects
+    end
   end
 end

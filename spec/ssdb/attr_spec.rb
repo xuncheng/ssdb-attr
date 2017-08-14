@@ -1,55 +1,6 @@
 require "spec_helper"
 
-class Post < ActiveRecord::Base
-  include SSDB::Attr
-
-  ssdb_attr :name, :string
-  ssdb_attr :int_version, :integer
-  ssdb_attr :default_title, :string, default: "Untitled"
-  ssdb_attr :title, :string
-  ssdb_attr :content, :string
-  ssdb_attr :version, :integer, default: 1
-  ssdb_attr :default_version, :integer, :default => 100
-  ssdb_attr :field_with_validation, :string
-
-  validate :validate_field
-
-  def validate_field
-    if field_with_validation == "foobar"
-      errors.add(:field_with_validation, "foobar error")
-    end
-  end
-end
-
-class CustomIdField < ActiveRecord::Base
-  include SSDB::Attr
-
-  ssdb_attr_id :uuid
-  ssdb_attr :content, :string
-end
-
-class CustomPoolName < ActiveRecord::Base
-  include SSDB::Attr
-
-  ssdb_attr_pool :foo_pool
-
-  ssdb_attr :foo_id, :integer
-end
-
 describe SSDB::Attr do
-
-  before(:all) do
-    # Connect to test SSDB server
-    SSDBAttr.setup(:url => "redis://localhost:8888")
-
-    # Clean up SSDB
-    system('printf "7\nflushdb\n\n4\nping\n\n" | nc 127.0.0.1 8888 -i 1 > /dev/null')
-
-    ActiveRecord::Base.connection.tables.each do |table|
-      ActiveRecord::Base.connection.execute "DELETE FROM #{table}"
-    end
-  end
-
   context "Post" do
     let(:post) { Post.create(updated_at: 1.day.ago, saved_at: 1.day.ago, changed_at: 1.day.ago) }
     let(:redis) { Redis.new(:url => 'redis://localhost:8888') }
@@ -72,6 +23,7 @@ describe SSDB::Attr do
     it "should respond to methods" do
       expect(post.respond_to?(:name)).to be true
       expect(post.respond_to?(:name=)).to be true
+      expect(post.respond_to?(:name_default_value)).to be true
       expect(post.respond_to?(:name_was)).to be true
       expect(post.respond_to?(:name_change)).to be true
       expect(post.respond_to?(:name_changed?)).to be true
@@ -98,6 +50,16 @@ describe SSDB::Attr do
       it "shouldn't track attirbute changes unless value changed" do
         expect(post).not_to receive(:title_will_change!)
         post.title = ""
+      end
+    end
+
+    describe "#attirbute_default_value" do
+      it "returns correct default value" do
+        post.default_title = "changed"
+        post.default_version = 99
+
+        expect(post.default_title_default_value).to eq("Untitled")
+        expect(post.default_version_default_value).to eq(100)
       end
     end
 
