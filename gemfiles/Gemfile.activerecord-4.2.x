@@ -1,8 +1,8 @@
 source "https://rubygems.org"
 
-gemspec
+gemspec path: ".."
 
-gem "activerecord", "~> 5.0"
+gem "activerecord", "~> 4.2", ">= 4.2.1"
 
 gem "rake"
 gem "pry"

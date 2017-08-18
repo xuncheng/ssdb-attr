@@ -5,7 +5,8 @@ module SSDB
     included do
       instance_variable_set(:@ssdb_attr_definition, {})
 
-      after_commit :save_ssdb_attrs,  on: %i(create update)
+      after_create :save_ssdb_attrs
+      after_update :save_ssdb_attrs
       after_commit :clear_ssdb_attrs, on: :destroy
     end
 
@@ -180,8 +181,8 @@ module SSDB
     # @return [void]
     #
     def save_ssdb_attrs
-      params = (previous_changes.keys & self.class.ssdb_attr_names).map do |attr|
-        ["#{ssdb_attr_key(attr)}", previous_changes[attr][1]]
+      params = (changes.keys & self.class.ssdb_attr_names).map do |attr|
+        ["#{ssdb_attr_key(attr)}", changes[attr][1]]
       end
 
       ssdb_attr_pool.with do |conn|

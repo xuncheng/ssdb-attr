@@ -1,7 +1,11 @@
 language: ruby
 
 rvm:
-  - 2.3.0
+  - 2.3.4
+
+gemfile:
+  - Gemfile
+  - gemfiles/Gemfile.activerecord-4.2.x
 
 before_install:
   - git clone -b stable-1.9.2 git://github.com/ideawu/ssdb.git
