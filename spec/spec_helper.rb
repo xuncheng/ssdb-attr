@@ -3,7 +3,7 @@ require "nulldb"
 require "ssdb-attr"
 
 # Setup ActiveRecord
-ActiveRecord::Base.raise_in_transactional_callbacks = true if ActiveRecord::VERSION::STRING >= "4.2"
+ActiveRecord::Base.raise_in_transactional_callbacks = true if ActiveRecord::VERSION::STRING < "5.0"
 ActiveRecord::Base.establish_connection(:adapter => "sqlite3", :database => ":memory:")
 
 RSpec.configure do |config|
@@ -18,7 +18,7 @@ RSpec.configure do |config|
     # Clean up SSDB
     system('printf "7\nflushdb\n\n4\nping\n\n" | nc 127.0.0.1 8888 -i 1 > /dev/null')
 
-    ActiveRecord::Base.connection.tables.each do |table|
+    ActiveRecord::Base.connection.data_sources.each do |table|
       ActiveRecord::Base.connection.execute "DELETE FROM #{table}"
     end
   end

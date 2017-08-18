@@ -76,10 +76,18 @@ describe SSDB::Attr do
     end
 
     describe "#save_ssdb_attrs" do
-      it "should save attribute values in SSDB" do
-        allow(post).to receive(:previous_changes).and_return({"title"=>["", "foobar2"]})
-        post.send(:save_ssdb_attrs)
-        expect(redis.get("posts:#{post.id}:title")).to eq("foobar2")
+      it "saves attribute values in ssdb when create a new record" do
+        post = Post.create(title: "foobar")
+
+        expect(redis.get("posts:#{post.id}:title")).to eq("foobar")
+      end
+
+      it "saves attribute values in ssdb when update a record" do
+        expect(redis.get("posts:#{post.id}:title")).to be_nil
+
+        post.update(title: "foobar")
+
+        expect(redis.get("posts:#{post.id}:title")).to eq("foobar")
       end
     end
 
