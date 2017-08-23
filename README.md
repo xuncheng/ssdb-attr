@@ -8,7 +8,7 @@ This gem provides an intuitive interface to define attributes on your ActiveMode
 
 ### 0.1.5
 
-- Upgrade `activerecord` dependency to support 5.1
+- Upgrade `activerecord` dependency to support 5.0
 - Change `after_commit` callback to use `after_create` & `after_save`
 
 ### 0.1.4
