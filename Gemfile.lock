@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    ssdb-attr (0.1.5)
+    ssdb-attr (0.1.6)
       activerecord (>= 4.2.1, < 5.1)
       connection_pool (~> 2.2.0)
-      redis (~> 3.2.1)
+      redis (>= 3.2.1)
 
 GEM
   remote: https://rubygems.org/
