@@ -56,11 +56,15 @@ module SSDB
           raise "Type not supported, only `:string` and `:integer` are supported now."
         end
 
-        @ssdb_attr_definition[name.to_s] = type.to_s
+        @ssdb_attr_definition[name.to_sym] = options.symbolize_keys.merge(:type => type.to_sym)
 
         define_method(name) do
-          instance_variable_get("@#{name}") || begin
-            val = ssdb_attr_pool.with { |conn| conn.get(ssdb_attr_key(name)) } || options[:default]
+          return instance_variable_get("@#{name}") if instance_variable_defined?("@#{name}")
+
+          val = ssdb_attr_pool.with { |conn| conn.get(ssdb_attr_key(name)) } || options[:default]
+          if val.nil?
+            instance_variable_set("@#{name}", nil)
+          else
             instance_variable_set("@#{name}", typecaster(val, type))
           end
         end
@@ -71,6 +75,7 @@ module SSDB
         end
 
         define_method("#{name}_default_value") do
+          return nil unless options.key?(:default)
           typecaster(options[:default], type)
         end
 
@@ -85,6 +90,16 @@ module SSDB
         define_method("#{name}_will_change!") { attribute_will_change!(name) }
 
       end
+    end
+
+    # 返回某个 SSDB Attr 的类型
+    #
+    # @param [String] name
+    #
+    # @return [Symbol]
+    #
+    def ssdb_attr_type(name)
+      self.class.ssdb_attr_definition.dig(name.to_sym, :type)
     end
 
     #
@@ -106,15 +121,19 @@ module SSDB
     # @return [void]
     #
     def load_ssdb_attrs(*fields)
-      fields = (fields.map(&:to_s) & self.class.ssdb_attr_names)
+      fields = (fields.map(&:to_sym) & self.class.ssdb_attr_names)
 
       values = ssdb_attr_pool.with do |conn|
         conn.mget(fields.map { |name| ssdb_attr_key(name) })
       end
 
       fields.each_with_index do |attr, index|
-        value = typecaster(values[index], self.class.ssdb_attr_definition[attr])
-        instance_variable_set("@#{attr}", value)
+        if (raw_value = values[index]).nil?
+          instance_variable_set("@#{attr}", nil)
+        else
+          value = typecaster(raw_value, ssdb_attr_type(attr))
+          instance_variable_set("@#{attr}", value)
+        end
       end
     end
 
@@ -181,13 +200,26 @@ module SSDB
     # @return [void]
     #
     def save_ssdb_attrs
-      params = (changes.keys & self.class.ssdb_attr_names).map do |attr|
-        ["#{ssdb_attr_key(attr)}", changes[attr][1]]
+      changed_ssdb_attributes = changes.keys.map(&:to_sym) & self.class.ssdb_attr_names
+
+      will_removed_attributes = []
+      will_updated_attributes = []
+
+      changed_ssdb_attributes.each do |attr|
+        if (new_value = changes[attr][1]).nil?
+          will_removed_attributes << "#{ssdb_attr_key(attr)}"
+        else
+          will_updated_attributes << ["#{ssdb_attr_key(attr)}", new_value]
+        end
       end
 
-      ssdb_attr_pool.with do |conn|
-        conn.mset(*params.flatten)
-      end if params.length > 0
+      unless will_updated_attributes.empty?
+        ssdb_attr_pool.with { |conn| conn.mset(*will_updated_attributes.flatten) }
+      end
+
+      unless will_removed_attributes.empty?
+        ssdb_attr_pool.with { |conn| conn.del(*will_removed_attributes) }
+      end
     end
 
     #
@@ -199,12 +231,7 @@ module SSDB
     # @return [void]
     #
     def reload_ssdb_attrs
-      keys = self.class.ssdb_attr_names.map { |name| ssdb_attr_key(name) }
-      values = ssdb_attr_pool.with { |conn| conn.mget(keys) }
-
-      self.class.ssdb_attr_names.each_with_index do |attr, index|
-        instance_variable_set("@#{attr}", typecaster(values[index], self.class.ssdb_attr_definition[attr]))
-      end
+      load_ssdb_attrs(*self.class.ssdb_attr_names)
     end
   end
 end

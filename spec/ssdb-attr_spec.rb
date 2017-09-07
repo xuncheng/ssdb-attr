@@ -136,17 +136,20 @@ describe SSDBAttr do
       posts = Post.where(:id => [post1.id, post2.id])
 
       posts.each do |post|
-        expect(post.instance_variable_get(:@name)).to be(nil)
-        expect(post.instance_variable_get(:@version)).to be(nil)
+        expect(post.instance_variable_get(:@name)).to be_nil
+        expect(post.instance_variable_get(:@version)).to be_nil
+        expect(post.instance_variable_get(:@content)).to be_nil
       end
 
-      SSDBAttr.load_attrs(posts, :name, :version)
+      SSDBAttr.load_attrs(posts, :name, :version, :content)
 
       expect(posts[0].instance_variable_get(:@name)).to eq("lol")
       expect(posts[0].instance_variable_get(:@version)).to eq(2)
+      expect(posts[0].instance_variable_get(:@content)).to be_nil
 
       expect(posts[1].instance_variable_get(:@name)).to eq("dota")
       expect(posts[1].instance_variable_get(:@version)).to eq(3)
+      expect(posts[1].instance_variable_get(:@content)).to be_nil
     end
 
     it "returns default value correctly if no value in ssdb" do

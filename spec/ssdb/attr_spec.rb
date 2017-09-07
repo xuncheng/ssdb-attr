@@ -9,14 +9,17 @@ describe SSDB::Attr do
       it "should set `@ssdb_attr_definition` correctly"  do
         ssdb_attr_definition = Post.instance_variable_get(:@ssdb_attr_definition)
 
-        expect(ssdb_attr_definition["name"]).to eq("string")
-        expect(ssdb_attr_definition["int_version"]).to eq("integer")
-        expect(ssdb_attr_definition["default_title"]).to eq("string")
-        expect(ssdb_attr_definition["title"]).to eq("string")
-        expect(ssdb_attr_definition["content"]).to eq("string")
-        expect(ssdb_attr_definition["version"]).to eq("integer")
-        expect(ssdb_attr_definition["default_version"]).to eq("integer")
-        expect(ssdb_attr_definition["field_with_validation"]).to eq("string")
+        expect(ssdb_attr_definition[:name][:type]).to eq(:string)
+        expect(ssdb_attr_definition[:int_version][:type]).to eq(:integer)
+        expect(ssdb_attr_definition[:default_title][:type]).to eq(:string)
+        expect(ssdb_attr_definition[:title][:type]).to eq(:string)
+        expect(ssdb_attr_definition[:content][:type]).to eq(:string)
+        expect(ssdb_attr_definition[:version][:type]).to eq(:integer)
+        expect(ssdb_attr_definition[:default_version][:type]).to eq(:integer)
+        expect(ssdb_attr_definition[:field_with_validation][:type]).to eq(:string)
+
+        expect(ssdb_attr_definition[:default_title][:default]).to eq("Untitled")
+        expect(ssdb_attr_definition[:default_version][:default]).to eq(100)
       end
     end
 
@@ -29,6 +32,13 @@ describe SSDB::Attr do
       expect(post.respond_to?(:name_changed?)).to be true
       expect(post.respond_to?(:restore_name!)).to be true
       expect(post.respond_to?(:name_will_change!)).to be true
+    end
+
+    describe "#ssdb_attr_type" do
+      it "returns the type for a defined attribute" do
+        expect(post.ssdb_attr_type("name")).to eq(:string)
+        expect(post.ssdb_attr_type("int_version")).to eq(:integer)
+      end
     end
 
     describe "#attribute=" do
@@ -46,11 +56,6 @@ describe SSDB::Attr do
         expect(post).to receive(:title_will_change!)
         post.title = "foobar"
       end
-
-      it "shouldn't track attirbute changes unless value changed" do
-        expect(post).not_to receive(:title_will_change!)
-        post.title = ""
-      end
     end
 
     describe "#attirbute_default_value" do
@@ -60,6 +65,10 @@ describe SSDB::Attr do
 
         expect(post.default_title_default_value).to eq("Untitled")
         expect(post.default_version_default_value).to eq(100)
+      end
+
+      it "returns nil if the attribute without :default option" do
+        expect(post.title_default_value).to be_nil
       end
     end
 
@@ -72,6 +81,7 @@ describe SSDB::Attr do
         post.send(:reload_ssdb_attrs)
         expect(post.instance_variable_get(:@title)).to eq("foobar")
         expect(post.instance_variable_get(:@version)).to eq(4)
+        expect(post.instance_variable_get(:@content)).to be_nil
       end
     end
 
@@ -88,6 +98,14 @@ describe SSDB::Attr do
         post.update(title: "foobar")
 
         expect(redis.get("posts:#{post.id}:title")).to eq("foobar")
+      end
+
+      it "removes the attribute from ssdb when update the attribute to nil" do
+        post.update(title: "foobar")
+        expect(redis.get("posts:#{post.id}:title")).to eq("foobar")
+
+        post.update(title: nil)
+        expect(redis.get("posts:#{post.id}:title")).to be_nil
       end
     end
 
@@ -106,11 +124,16 @@ describe SSDB::Attr do
       it "loads the values of all specified attrs" do
         post = Post.create(title: "foobar", version: 4)
         post = Post.find(post.id)
-        expect(post.instance_variable_get(:@title)).to be_nil
 
-        post.load_ssdb_attrs(:title, :version)
+        expect(post.instance_variable_get(:@title)).to be_nil
+        expect(post.instance_variable_get(:@version)).to be_nil
+        expect(post.instance_variable_get(:@content)).to be_nil
+
+        post.load_ssdb_attrs(:title, :version, :content, :noexistent)
         expect(post.instance_variable_get(:@title)).to eq("foobar")
         expect(post.instance_variable_get(:@version)).to eq(4)
+        expect(post.instance_variable_get(:@content)).to be_nil
+        expect(post.instance_variable_defined?(:@noexistent)).to eq(false)
       end
     end
 
@@ -121,8 +144,8 @@ describe SSDB::Attr do
     end
 
     context "type: :integer" do
-      it "default value should be 0" do
-        expect(post.int_version).to eq(0)
+      it "default value should be nil" do
+        expect(post.int_version).to be_nil
       end
 
       it "should hold integer value and return it" do
@@ -136,8 +159,8 @@ describe SSDB::Attr do
     end
 
     context "type: :string" do
-      it "default value" do
-        expect(post.title).to eq("")
+      it "default value should be nil" do
+        expect(post.title).to be_nil
       end
 
       it "default value with `:default` option" do

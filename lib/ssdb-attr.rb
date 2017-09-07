@@ -107,7 +107,7 @@ module SSDBAttr
     # @return [ActiveRecord::Relation|Array]
     #
     def load_attrs(objects, *fields)
-      fields.map!(&:to_s)
+      fields.map!(&:to_sym)
 
       keys = objects.flat_map do |object|
         fields.map { |name| object.ssdb_attr_key(name) }
@@ -117,11 +117,11 @@ module SSDBAttr
 
       objects.each do |object|
         fields.each do |name|
-          next unless object.class.ssdb_attr_names.include?(name.to_s)
+          next unless object.class.ssdb_attr_names.include?(name.to_sym)
 
           value =
             if (raw_value = key_values[object.ssdb_attr_key(name)]).present?
-              object.typecaster(raw_value, object.class.ssdb_attr_definition[name])
+              object.typecaster(raw_value, object.ssdb_attr_type(name))
             else
               object.public_send("#{name}_default_value")
             end
